@@ -4,8 +4,6 @@ require 'mocha/setup'
 
 require 'i18n-docs'
 
-Rails = Struct.new(:dummy)
-
 module TestHelper
 
   def fixture_path

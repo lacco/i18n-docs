@@ -10,13 +10,18 @@ module UnitTests
     def setup
       create_tmp_dir
 
-      @input_file  = File.join(fixture_path, 'minimal.csv')
-      @output_file = File.join(tmp_dir, 'test.yml')
-      @locales = ['de', 'en']
+      @config = LocalchI18n::Config.new(
+        :locale_dir => File.join(tmp_dir),
+        :locales => [:en, :de],
+        :files => [
+          :source => File.join(fixture_path, "minimal.csv"),
+          :path => '#{locale}/test.yml'
+        ]
+      )
 
-      Rails.stubs(:root).returns(stub(:join => @output_file))
+      @file = @config.files.first
 
-      @csv_to_yaml = LocalchI18n::CsvToYaml.new(@input_file, @output_file, @locales)
+      @csv_to_yaml = LocalchI18n::CsvToYaml.new(File.read(@file.source), @file, @config.locales)
     end
 
     def teardown
@@ -119,13 +124,14 @@ module UnitTests
     end
 
     def test_process
-      @locales.each do |locale|
-        assert_empty @csv_to_yaml.translations[locale], "expected translation hash for locale '#{locale}' to be empty"
+      @config.locales.each do |locale|
+        assert_empty @csv_to_yaml.translations[locale.to_s], "expected translation hash for locale '#{locale}' to be empty"
       end
 
       @csv_to_yaml.process
 
-      @locales.each do |locale|
+      @config.locales.each do |locale|
+        locale = locale.to_s
         assert @csv_to_yaml.translations[locale]['tel']['extended']['company_label']
         assert @csv_to_yaml.translations[locale]['tel']['extended']['company_label'].is_a?(String)
         assert @csv_to_yaml.translations[locale]['tel']['search_button']
@@ -134,12 +140,14 @@ module UnitTests
     end
 
     def test_write_files
-      assert !File.exists?(@output_file)
+      assert !File.exists?(@file.full_path_for("de"))
+      assert !File.exists?(@file.full_path_for("en"))
       @csv_to_yaml.process
       @csv_to_yaml.write_files
-      assert File.exists?(@output_file)
+      assert File.exists?(@file.full_path_for("de"))
+      assert File.exists?(@file.full_path_for("en"))
     end
-    
+
     def test_key_has_spaces
       row = {'key' => 'has. space', 'en' => 'yes', 'de' => 'ja'}
       @csv_to_yaml.process_row(row)

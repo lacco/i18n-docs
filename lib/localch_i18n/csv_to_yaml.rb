@@ -4,9 +4,9 @@ module LocalchI18n
 
     attr_reader :input_file, :output_file, :locales, :translations
 
-    def initialize(input_file, output_file, locales = [])
-      @input_file = input_file
-      @output_file = File.basename(output_file)
+    def initialize(csv, output_file, locales = [])
+      @csv = csv
+      @output_file = output_file
       @locales = locales.map(&:to_s)
 
       # init translation hash
@@ -19,23 +19,20 @@ module LocalchI18n
 
     def write_files
       @locales.each do |locale|
-        if defined?(Rails)
-          output_file_path = Rails.root.join('config', 'locales', locale, @output_file)
-          FileUtils.mkdir_p File.dirname(output_file_path)
-        else
-          output_file_path = "#{locale}_#{@output_file}"
-        end
+        output_file_path = @output_file.full_path_for(locale)
+        FileUtils.mkdir_p(File.dirname(output_file_path))
+
         File.open(output_file_path, 'w') do |file|
           final_translation_hash = {locale => @translations[locale]}
-          file.puts YAML::dump(final_translation_hash)
+          # we don't want line breaks after x characters, so just "disable" line break via "line_width: -1"
+          file.puts YAML::dump(final_translation_hash, :line_width => -1)
         end
-        puts "File '#{@output_file}' for language '#{locale}' written to disc (#{output_file_path})"
       end
     end
 
 
     def process
-      CSV.foreach(@input_file, headers: true) do |row|
+      CSV.parse(@csv, headers: true) do |row|
         process_row(row.to_hash)
       end
     end

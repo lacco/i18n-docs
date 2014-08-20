@@ -1,6 +1,6 @@
 require 'test_helper'
 
-# run test: ruby -I test/ -I lib/ test/unit/locale_builder_test.rb
+# run test: ruby -I test/ -I lib/ test/unit/translation_exporter_test.rb
 
 module UnitTests
   class TranslationFileExportTest < Test::Unit::TestCase
@@ -9,19 +9,24 @@ module UnitTests
     def setup
       create_tmp_dir
 
-      source_dir = fixture_path
-      source_file = 'header.yml'
-      output_dir = tmp_dir
-      locales = ['en', 'de']
+      @config = LocalchI18n::Config.new(
+        :export_dir => File.join(tmp_dir),
+        :locale_dir => File.join(fixture_path),
+        :locales => [:en, :de],
+        :files => [
+          :name => "test_file",
+          :source => File.join(fixture_path, "minimal.csv"),
+          :path => '#{locale}/header.yml'
+        ]
+      )
+      @exporter = LocalchI18n::TranslationExporter.new(@config)
 
-      @exporter = LocalchI18n::TranslationFileExport.new(source_dir, source_file, output_dir, locales)
-      @output_file = File.join(output_dir, 'header.csv')
+      @output_file = File.join(tmp_dir, "test_file.csv")
     end
 
     def teardown
       remove_tmp_dir
     end
-
 
     def test_export
       assert !File.exists?(@output_file)
